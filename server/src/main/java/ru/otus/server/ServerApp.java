@@ -1,7 +1,7 @@
 package ru.otus.server;
 
-public class Main {
+public class ServerApp {
     public static void main(String[] args) {
-        System.out.println("Hello from Server!");
+        new Server(8189).start();
     }
 }

@@ -1,7 +1,7 @@
 package ru.otus.client;
 
-public class Main {
+public class ClientApp {
     public static void main(String[] args) {
-        System.out.println("Hello from Client!");
+        new Client("localhost", 8189);
     }
 }
