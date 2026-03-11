@@ -14,6 +14,7 @@ public class ClientHandler {
 
     private String username;
 
+    private boolean isAuthenticate;
 
     public ClientHandler(Server server, Socket socket) throws IOException {
         this.server = server;
@@ -21,12 +22,53 @@ public class ClientHandler {
         this.in = new DataInputStream(socket.getInputStream());
         this.out = new DataOutputStream(socket.getOutputStream());
         System.out.println("Client connected port:" + socket.getPort());
-        username = "user" + socket.getPort();
-        sendMsg("Вы подключились под ником: " + username);
 
         new Thread(() -> {
             try {
-                while (true) {
+                // цикл аутентификации
+                while (!isAuthenticate) {
+                    sendMsg("Перед работой с чатом необходимо выполнить аутентификацию \n" +
+                            ConsoleColors.GREEN_BOLD + "/auth login password" + ConsoleColors.RESET +
+                            " или зарегистрироваться \n" +
+                            ConsoleColors.GREEN_BOLD + "/reg login password username" + ConsoleColors.RESET);
+
+                    String message = in.readUTF();
+                    if (message.startsWith("/")) {
+                        if (message.equals("/exit")) {
+                            sendMsg("/exitok");
+                            break;
+                        }
+                        // /auth login password
+                        if (message.startsWith("/auth ")) {
+                            String[] token = message.trim().split(" ");
+                            if (token.length != 3) {
+                                sendMsg(ConsoleColors.RED + "Неверный формат команды /auth " + ConsoleColors.RESET);
+                                continue;
+                            }
+                            if (server.getAuthenticatedProvider()
+                                    .authenticate(this, token[1], token[2])) {
+                                isAuthenticate = true;
+                                break;
+                            }
+                            continue;
+                        }
+                        // /reg login password username
+                        if (message.startsWith("/reg")) {
+                            String[] token = message.trim().split(" ");
+                            if (token.length != 4) {
+                                sendMsg(ConsoleColors.RED + "Неверный формат команды /reg " + ConsoleColors.RESET);
+                                continue;
+                            }
+                            if (server.getAuthenticatedProvider()
+                                    .register(this, token[1], token[2], token[3])) {
+                                isAuthenticate = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                while (isAuthenticate) {
                     String message = in.readUTF();
 
                     //  Служебные сообщения
@@ -49,9 +91,10 @@ public class ClientHandler {
                         }
 
                     } else {
-                        server.broadcastMessage(username + ": " + message);
+                        server.broadcastMessage(username, message);
                     }
                 }
+
             } catch (IOException e) {
                 e.printStackTrace();
 
@@ -61,7 +104,6 @@ public class ClientHandler {
         }).start();
     }
 
-
     public void sendMsg(String message) {
         try {
             out.writeUTF(message);
@@ -70,21 +112,17 @@ public class ClientHandler {
         }
     }
 
-
     public String getUsername() {
         return username;
     }
-
 
     public void setUsername(String username) {
         this.username = username;
     }
 
-
     private void disconnect() {
         server.unsubscribe(this);
-        System.out.println("Client disconnected port:" + socket.getPort());
-
+        System.out.println("Client disconnected username: " + username);
         try {
             if (in != null) {
                 in.close();
@@ -92,7 +130,6 @@ public class ClientHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         try {
             if (out != null) {
                 out.close();
@@ -100,7 +137,6 @@ public class ClientHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
-
         try {
             if (socket != null) {
                 socket.close();
