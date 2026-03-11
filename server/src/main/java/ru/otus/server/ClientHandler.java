@@ -4,6 +4,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.Set;
 
 public class ClientHandler {
     private Server server;
@@ -27,14 +28,26 @@ public class ClientHandler {
             try {
                 while (true) {
                     String message = in.readUTF();
-                    //  /служебные сообщения
+
+                    //  Служебные сообщения
                     if (message.startsWith("/")) {
-                        if (message.equals("/exit")){
+                        String[] tokens = message.split(" ", 3);
+                        String command = tokens[0];
+
+                        if (command.equals("/exit")){
                             sendMsg("/exitok");
                             break;
                         }
 
-//                        String[] token = "12 erter 234 werw we".split(" ", 3);
+                        if (command.equals("/w")) {
+                            String recipientUsername = tokens[1];
+                            String privateMessage = tokens[2];
+
+                            Set<String> recipients = Set.of(username, recipientUsername);
+
+                            server.sendMessageTo(username + ": " + privateMessage, recipients);
+                        }
+
                     } else {
                         server.broadcastMessage(username + ": " + message);
                     }

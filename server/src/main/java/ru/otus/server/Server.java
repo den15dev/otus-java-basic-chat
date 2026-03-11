@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class Server {
@@ -47,6 +48,15 @@ public class Server {
     public void broadcastMessage(String message) {
         for (ClientHandler c : clients) {
             c.sendMsg(message);
+        }
+    }
+
+
+    public void sendMessageTo(String message, Set<String> usernames) {
+        for (ClientHandler c : clients) {
+            if (usernames.contains(c.getUsername())) {
+                c.sendMsg(message);
+            }
         }
     }
 }
