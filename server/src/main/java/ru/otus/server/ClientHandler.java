@@ -13,6 +13,7 @@ public class ClientHandler {
     private DataOutputStream out;
 
     private String username;
+    private Role role;
 
     private boolean isAuthenticate;
 
@@ -33,6 +34,7 @@ public class ClientHandler {
                             ConsoleColors.GREEN_BOLD + "/reg login password username" + ConsoleColors.RESET);
 
                     String message = in.readUTF();
+
                     if (message.startsWith("/")) {
                         if (message.equals("/exit")) {
                             sendMsg("/exitok");
@@ -76,8 +78,19 @@ public class ClientHandler {
                         String[] tokens = message.split(" ", 3);
                         String command = tokens[0];
 
-                        if (command.equals("/exit")){
+                        if (command.equals("/exit")) {
                             sendMsg("/exitok");
+                            server.broadcastMessage("Admin", "Пользователь " + username + " покинул чат.");
+                            break;
+                        }
+
+                        if (command.equals("/kickok")) {
+                            server.broadcastMessage(
+                                "Admin",
+                                ConsoleColors.YELLOW +
+                                "Пользователь " + username + " был исключён из чата админом." +
+                                ConsoleColors.RESET
+                            );
                             break;
                         }
 
@@ -88,6 +101,12 @@ public class ClientHandler {
                             Set<String> recipients = Set.of(username, recipientUsername);
 
                             server.sendMessageTo(username + ": " + privateMessage, recipients);
+                        }
+
+                        if (command.equals("/kick") && isAdmin()) {
+                            String usernameToKick = tokens[1];
+                            Set<String> recipients = Set.of(usernameToKick);
+                            server.sendMessageTo("/kick", recipients);
                         }
 
                     } else {
@@ -120,9 +139,18 @@ public class ClientHandler {
         this.username = username;
     }
 
-    private void disconnect() {
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    private boolean isAdmin() {
+        return this.role == Role.ADMIN;
+    }
+
+    public void disconnect() {
         server.unsubscribe(this);
         System.out.println("Client disconnected username: " + username);
+
         try {
             if (in != null) {
                 in.close();

@@ -15,6 +15,7 @@ public class Client {
     private int port;
 
     Scanner sc;
+    private volatile boolean running = true;
 
     public Client(String host, int port) {
         this.host = host;
@@ -32,6 +33,14 @@ public class Client {
                         String message = in.readUTF();
                         if (message.startsWith("/")) {
                             if (message.equals("/exitok")){
+                                running = false;
+                                break;
+                            }
+
+                            if (message.equals("/kick")){
+                                out.writeUTF("/kickok");
+                                System.out.println("Вы отключены от чата админом.");
+                                running = false;
                                 break;
                             }
                         }
@@ -44,8 +53,13 @@ public class Client {
                 }
             }).start();
 
-            while (true) {
+            while (running) {
                 String message = sc.nextLine();
+
+                if (!running) {
+                    break;
+                }
+
                 out.writeUTF(message);
                 if (message.equals("/exit")){
                     break;
