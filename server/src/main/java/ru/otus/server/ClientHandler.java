@@ -3,7 +3,9 @@ package ru.otus.server;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.EOFException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Set;
 
 public class ClientHandler {
@@ -13,6 +15,7 @@ public class ClientHandler {
     private DataOutputStream out;
 
     private String username;
+    private Role role;
 
     private boolean isAuthenticate;
 
@@ -33,6 +36,7 @@ public class ClientHandler {
                             ConsoleColors.GREEN_BOLD + "/reg login password username" + ConsoleColors.RESET);
 
                     String message = in.readUTF();
+
                     if (message.startsWith("/")) {
                         if (message.equals("/exit")) {
                             sendMsg("/exitok");
@@ -76,8 +80,9 @@ public class ClientHandler {
                         String[] tokens = message.split(" ", 3);
                         String command = tokens[0];
 
-                        if (command.equals("/exit")){
+                        if (command.equals("/exit")) {
                             sendMsg("/exitok");
+                            server.broadcastMessage("Admin", "Пользователь " + username + " покинул чат.");
                             break;
                         }
 
@@ -90,10 +95,34 @@ public class ClientHandler {
                             server.sendMessageTo(username + ": " + privateMessage, recipients);
                         }
 
+                        if (command.equals("/kick") && isAdmin()) {
+                            String usernameToKick = tokens[1];
+                            ClientHandler clientToKick = server.getClientByUsername(usernameToKick);
+
+                            if (clientToKick == null) {
+                                sendMsg("Такого пользователя не существует, или он уже отключился.");
+                                continue;
+                            }
+
+                            Set<String> recipients = Set.of(usernameToKick);
+                            server.sendMessageTo("/kick", recipients);
+                            clientToKick.disconnect();
+
+                            server.broadcastMessage(
+                                "Admin",
+                                ConsoleColors.YELLOW +
+                                "Пользователь " + usernameToKick + " был исключён из чата админом." +
+                                ConsoleColors.RESET
+                            );
+                        }
+
                     } else {
                         server.broadcastMessage(username, message);
                     }
                 }
+
+            } catch (EOFException | SocketException e) {
+                // соединение было закрыто
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -120,9 +149,18 @@ public class ClientHandler {
         this.username = username;
     }
 
-    private void disconnect() {
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    private boolean isAdmin() {
+        return this.role == Role.ADMIN;
+    }
+
+    public void disconnect() {
         server.unsubscribe(this);
         System.out.println("Client disconnected username: " + username);
+
         try {
             if (in != null) {
                 in.close();
