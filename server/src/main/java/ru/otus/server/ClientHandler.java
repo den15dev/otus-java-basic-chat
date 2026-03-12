@@ -97,10 +97,15 @@ public class ClientHandler {
 
                         if (command.equals("/kick") && isAdmin()) {
                             String usernameToKick = tokens[1];
+                            ClientHandler clientToKick = server.getClientByUsername(usernameToKick);
+
+                            if (clientToKick == null) {
+                                sendMsg("Такого пользователя не существует, или он уже отключился.");
+                                continue;
+                            }
+
                             Set<String> recipients = Set.of(usernameToKick);
                             server.sendMessageTo("/kick", recipients);
-
-                            ClientHandler clientToKick = server.getClientByUsername(usernameToKick);
                             clientToKick.disconnect();
 
                             server.broadcastMessage(
