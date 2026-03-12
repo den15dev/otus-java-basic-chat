@@ -38,7 +38,6 @@ public class Client {
                             }
 
                             if (message.equals("/kick")){
-                                out.writeUTF("/kickok");
                                 System.out.println("Вы отключены от чата админом.");
                                 running = false;
                                 break;

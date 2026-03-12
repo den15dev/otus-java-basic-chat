@@ -72,6 +72,16 @@ public class Server {
     }
 
 
+    public ClientHandler getClientByUsername(String username) {
+        for (ClientHandler c : clients) {
+            if (c.getUsername().equals(username)) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+
     public AuthenticatedProvider getAuthenticatedProvider() {
         return authenticatedProvider;
     }

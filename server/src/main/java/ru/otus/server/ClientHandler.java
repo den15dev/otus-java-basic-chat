@@ -3,7 +3,9 @@ package ru.otus.server;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.EOFException;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Set;
 
 public class ClientHandler {
@@ -84,16 +86,6 @@ public class ClientHandler {
                             break;
                         }
 
-                        if (command.equals("/kickok")) {
-                            server.broadcastMessage(
-                                "Admin",
-                                ConsoleColors.YELLOW +
-                                "Пользователь " + username + " был исключён из чата админом." +
-                                ConsoleColors.RESET
-                            );
-                            break;
-                        }
-
                         if (command.equals("/w")) {
                             String recipientUsername = tokens[1];
                             String privateMessage = tokens[2];
@@ -107,12 +99,25 @@ public class ClientHandler {
                             String usernameToKick = tokens[1];
                             Set<String> recipients = Set.of(usernameToKick);
                             server.sendMessageTo("/kick", recipients);
+
+                            ClientHandler clientToKick = server.getClientByUsername(usernameToKick);
+                            clientToKick.disconnect();
+
+                            server.broadcastMessage(
+                                "Admin",
+                                ConsoleColors.YELLOW +
+                                "Пользователь " + usernameToKick + " был исключён из чата админом." +
+                                ConsoleColors.RESET
+                            );
                         }
 
                     } else {
                         server.broadcastMessage(username, message);
                     }
                 }
+
+            } catch (EOFException | SocketException e) {
+                // соединение было закрыто
 
             } catch (IOException e) {
                 e.printStackTrace();
