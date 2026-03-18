@@ -26,7 +26,6 @@ public class Server {
 
             while (true) {
                 Socket socket = serverSocket.accept();
-//                subscribe(new ClientHandler(this, socket));
                 new ClientHandler(this, socket);
             }
 
@@ -43,7 +42,6 @@ public class Server {
 
 
     public void unsubscribe(ClientHandler clientHandler) {
-        broadcastMessage("Admin", "Пользователь " + clientHandler.getUsername() + " покинул чат");
         clients.remove(clientHandler);
     }
 
@@ -71,6 +69,16 @@ public class Server {
             }
         }
         return false;
+    }
+
+
+    public ClientHandler getClientByUsername(String username) {
+        for (ClientHandler c : clients) {
+            if (c.getUsername().equals(username)) {
+                return c;
+            }
+        }
+        return null;
     }
 
 

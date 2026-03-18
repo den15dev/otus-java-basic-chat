@@ -8,11 +8,25 @@ public class InMemoryAuthenticatedProvider implements AuthenticatedProvider {
         private String login;
         private String password;
         private String username;
+        private Role role;
 
         public User(String login, String password, String username) {
             this.login = login;
             this.password = password;
             this.username = username;
+            this.role = Role.USER;
+        }
+
+        public void setRole(Role role) {
+            this.role = role;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public Role getRole() {
+            return role;
         }
     }
 
@@ -25,6 +39,10 @@ public class InMemoryAuthenticatedProvider implements AuthenticatedProvider {
         this.users.add(new User("qwe", "qwe", "qwe1"));
         this.users.add(new User("asd", "asd", "asd1"));
         this.users.add(new User("zxc", "zxc", "zxc1"));
+
+        User admin = new User("adm", "adm", "admin1");
+        admin.setRole(Role.ADMIN);
+        this.users.add(admin);
     }
 
     @Override
@@ -32,10 +50,10 @@ public class InMemoryAuthenticatedProvider implements AuthenticatedProvider {
         System.out.println("Сервер аутентификации запущен в режиме InMemory");
     }
 
-    private String getUsernameByLoginAndPassword(String login, String password) {
+    private User getUserByLoginAndPassword(String login, String password) {
         for (User u : users) {
             if (u.login.equals(login) && u.password.equals(password)) {
-                return u.username;
+                return u;
             }
         }
         return null;
@@ -61,19 +79,24 @@ public class InMemoryAuthenticatedProvider implements AuthenticatedProvider {
 
     @Override
     public boolean authenticate(ClientHandler clientHandler, String login, String password) {
-        String authUsername = getUsernameByLoginAndPassword(login, password);
-        if (authUsername == null) {
+        User user = getUserByLoginAndPassword(login, password);
+        if (user == null) {
             clientHandler.sendMsg("Некоректный логин / пароль");
             return false;
         }
+
+        String authUsername = user.getUsername();
         if (server.isUsernameBusy(authUsername)) {
             clientHandler.sendMsg("Указанная учетная запись уже занята");
             return false;
         }
+
         clientHandler.setUsername(authUsername);
+        clientHandler.setRole(user.getRole());
         clientHandler.sendMsg("Вы подключились под ником: " + authUsername);
         server.subscribe(clientHandler);
         clientHandler.sendMsg("/authok " + authUsername);
+
         return true;
     }
 
